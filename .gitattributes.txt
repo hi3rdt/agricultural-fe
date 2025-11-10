@@ -1,0 +1,5 @@
+# Tự động phát hiện và xử lý file text
+* text=auto
+
+# Giữ nguyên line endings cho các file cụ thể (nếu cần)
+# Ví dụ: *.sh eol=lf
