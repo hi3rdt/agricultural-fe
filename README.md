@@ -86,29 +86,29 @@ Dashboard: Tải lại thư viện ảnh (gallery) và hiển thị ảnh mới.
 
 🔧 Cài đặt & Chạy (Local)
 
-Clone Repository:
-
+1. Clone Repository:
+```
 git clone [https://github.com/hi3rdt/agricultural-fe.git](https://github.com/hi3rdt/agricultural-fe.git)
 cd agricultural-fe
+```
 
-
-Cài đặt Dependencies:
-
+2. Cài đặt Dependencies:
+```
 npm install
+```
 
-
-Quan trọng: Đảm bảo Backend đang chạy
+3. Quan trọng: Đảm bảo Backend đang chạy
 Trước khi chạy frontend, hãy đảm bảo server FastAPI (backend) của bạn đang chạy ở http://localhost:8080.
 
-Kiểm tra URL API
+4. Kiểm tra URL API
 Mở các file trong components/ (ví dụ SensorOverview.tsx) và đảm bảo hằng số API_URL được trỏ đúng đến backend của bạn:
-
+```
 const API_URL = "http://localhost:8080/api/latest"
+```
 
-
-Chạy Development Server:
-
+5. Chạy Development Server:
+```
 npm run dev
+```
 
-
-Mở trình duyệt và truy cập: http://localhost:3000
+6. Mở trình duyệt và truy cập: http://localhost:3000
