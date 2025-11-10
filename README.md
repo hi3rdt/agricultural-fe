@@ -1,122 +1,114 @@
-# Agricultural Monitoring Dashboard
+Frontend Dashboard - Hệ thống Giám sát Nông nghiệp (agricultural-fe)
 
-A real-time agricultural monitoring system built with Next.js that displays data from DHT22 (temperature/humidity) and LM393 (soil moisture) sensors connected to an ESP32.
+Đây là dự án frontend (giao diện người dùng) cho Hệ thống Giám sát Nông nghiệp Thông minh. Dự án này được xây dựng bằng Next.js và Tailwind CSS, cung cấp một dashboard trực quan để người dùng theo dõi dữ liệu cảm biến và điều khiển các thiết bị (máy bơm) từ xa.
 
-## Features
+🚀 Các tính năng chính
 
-- **Real-time Sensor Monitoring**: Display temperature, humidity, and soil moisture data
-- **Historical Charts**: 24-hour trend visualization for all sensor readings
-- **Automated Irrigation**: Configurable soil moisture thresholds for pump control
-- **Manual Override**: Manual pump control when needed
-- **Clean White UI**: Professional, intuitive interface optimized for agricultural use
+Giao diện được chia thành các thành phần (components) chính:
 
-## ESP32 Integration
+Tổng quan Cảm biến (SensorOverview):
 
-### API Endpoints
+Hiển thị dữ liệu thời gian thực (cập nhật mỗi 5 giây) cho: Nhiệt độ không khí, Độ ẩm không khí, và Độ ẩm đất.
 
-Your ESP32 should send sensor data to these endpoints:
+Hiển thị trạng thái (Status) của máy bơm (Active/Idle).
 
-#### POST /api/sensors
-Send sensor readings from your ESP32:
+Hiển thị các thẻ "Loading" (dạng pulse) trong khi chờ dữ liệu.
 
-\`\`\`json
-{
-  "temperature": 24.5,
-  "humidity": 65.2,
-  "soilMoisture": 45.8,
-  "pumpStatus": false
-}
-\`\`\`
+Điều khiển Tưới tiêu (PumpControls):
 
-#### GET /api/sensors
-Get current sensor readings
+Chuyển đổi Chế độ: Cho phép người dùng chuyển đổi giữa hai chế độ "Automatic" và "Manual".
 
-#### GET /api/sensors/history
-Get historical data for charts
+Điều khiển Thủ công: Cung cấp nút "Start/Stop Pump" (chỉ hoạt động ở chế độ "Manual").
 
-#### POST /api/pump
-Control pump settings:
+Thiết lập Ngưỡng (Thresholds): Cung cấp các thanh trượt (sliders) để người dùng cài đặt ngưỡng tưới (Low/High) cho chế độ "Automatic".
 
-\`\`\`json
-{
-  "action": "setThreshold",
-  "threshold": 30
-}
-\`\`\`
+Hiển thị trạng thái độ ẩm đất hiện tại so với các ngưỡng đã cài đặt.
 
-### ESP32 Code Example
+(Sắp có/Đã tích hợp) Thư viện Ảnh:
 
-\`\`\`cpp
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <ArduinoJson.h>
-#include <DHT.h>
+Hiển thị các ảnh chụp từ ESP32-CAM.
 
-#define DHT_PIN 2
-#define DHT_TYPE DHT22
-#define SOIL_MOISTURE_PIN A0
-#define PUMP_PIN 4
+Cho phép người dùng nhấn nút "Chụp ảnh" (Refresh) để yêu cầu camera chụp ảnh mới.
 
-DHT dht(DHT_PIN, DHT_TYPE);
+💻 Công nghệ sử dụng
 
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
-const char* serverURL = "http://your-dashboard-url.com/api/sensors";
+Framework: Next.js (Framework React)
 
-void setup() {
-  Serial.begin(115200);
-  dht.begin();
-  pinMode(PUMP_PIN, OUTPUT);
-  
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi...");
-  }
-}
+Ngôn ngữ: TypeScript
 
-void loop() {
-  float temperature = dht.readTemperature();
-  float humidity = dht.readHumidity();
-  int soilMoistureRaw = analogRead(SOIL_MOISTURE_PIN);
-  float soilMoisture = map(soilMoistureRaw, 0, 4095, 0, 100);
-  bool pumpStatus = digitalRead(PUMP_PIN);
+Styling (Giao diện): Tailwind CSS
 
-  // Send data to dashboard
-  HTTPClient http;
-  http.begin(serverURL);
-  http.addHeader("Content-Type", "application/json");
+UI Components: shadcn/ui (Card, Button, Slider, Switch, Badge)
 
-  StaticJsonDocument<200> doc;
-  doc["temperature"] = temperature;
-  doc["humidity"] = humidity;
-  doc["soilMoisture"] = soilMoisture;
-  doc["pumpStatus"] = pumpStatus;
+Icons: Lucide React
 
-  String jsonString;
-  serializeJson(doc, jsonString);
+🏗️ Kiến trúc & Luồng hoạt động
 
-  int httpResponseCode = http.POST(jsonString);
-  if (httpResponseCode > 0) {
-    Serial.println("Data sent successfully");
-  }
+Frontend này hoạt động như một máy khách (client), giao tiếp hoàn toàn qua HTTP với Backend FastAPI (chạy ở http://localhost:8080).
 
-  http.end();
-  delay(5000); // Send data every 5 seconds
-}
-\`\`\`
+Quan trọng: Frontend này không kết nối trực tiếp với MQTT Broker.
 
-## Getting Started
+1. Luồng Lấy Dữ liệu (Polling)
 
-1. Deploy this dashboard to Vercel or your preferred hosting platform
-2. Update the `serverURL` in your ESP32 code to point to your deployed dashboard
-3. Connect your DHT22 and LM393 sensors to your ESP32
-4. Upload the ESP32 code and start monitoring!
+Để hiển thị dữ liệu "gần thời gian thực", frontend sử dụng cơ chế HTTP Polling (hỏi liên tục):
 
-## Data Flow
+Khi tải trang (và mỗi 5 giây): Cả hai components SensorOverview và PumpControls đều gọi fetch đến API GET /api/latest của FastAPI.
 
-1. ESP32 reads sensor data every 5 seconds
-2. Data is sent via HTTP POST to `/api/sensors`
-3. Dashboard updates in real-time
-4. Historical data is maintained for 24-hour charts
-5. Pump control logic runs automatically based on thresholds
+FastAPI (Backend): Nhận yêu cầu, truy vấn CSDL (data.db) để lấy bản ghi cảm biến mới nhất (bản ghi này được MQTT cập nhật 24/7).
+
+Frontend (Next.js): Nhận dữ liệu JSON (gồm temperature, humidity, soil, pump_status, mode, low_threshold, high_threshold) và cập nhật giao diện (state) bằng useState.
+
+2. Luồng Gửi Lệnh (Control)
+
+Khi người dùng tương tác với UI:
+
+Nhấn nút (Ví dụ: "Start Pump"): Component PumpControls gọi fetch đến API POST /api/control của FastAPI.
+
+Nó gửi một JSON body chứa trạng thái điều khiển mới: {"mode": "manual", "pump_status": true, ...}.
+
+FastAPI (Backend): Nhận lệnh POST này, lưu vào CSDL, và đồng thời publish (đẩy) một tin nhắn MQTT lên topic nongnghiep/dieu_khien.
+
+ESP32 (Thiết bị): Nhận được lệnh MQTT và bật máy bơm.
+
+(Đồng bộ ngược): Ở lần Polling tiếp theo (sau 5 giây), GET /api/latest sẽ trả về pump_status: true, và giao diện sẽ tự cập nhật.
+
+3. Luồng Camera (HTTP Polling)
+
+Phần camera cũng sử dụng HTTP Polling (theo yêu cầu):
+
+Nhấn nút "Chụp ảnh": Dashboard gọi POST /api/capture-request.
+
+ESP32-CAM: Liên tục gọi GET /api/cam-command (cách mỗi 3-5 giây). Khi nhận được lệnh "capture", nó sẽ chụp ảnh.
+
+ESP32-CAM: Gửi ảnh lên server bằng POST /api/upload-image-raw/.
+
+Dashboard: Tải lại thư viện ảnh (gallery) và hiển thị ảnh mới.
+
+🔧 Cài đặt & Chạy (Local)
+
+Clone Repository:
+
+git clone [https://github.com/hi3rdt/agricultural-fe.git](https://github.com/hi3rdt/agricultural-fe.git)
+cd agricultural-fe
+
+
+Cài đặt Dependencies:
+
+npm install
+
+
+Quan trọng: Đảm bảo Backend đang chạy
+Trước khi chạy frontend, hãy đảm bảo server FastAPI (backend) của bạn đang chạy ở http://localhost:8080.
+
+Kiểm tra URL API
+Mở các file trong components/ (ví dụ SensorOverview.tsx) và đảm bảo hằng số API_URL được trỏ đúng đến backend của bạn:
+
+const API_URL = "http://localhost:8080/api/latest"
+
+
+Chạy Development Server:
+
+npm run dev
+
+
+Mở trình duyệt và truy cập: http://localhost:3000
